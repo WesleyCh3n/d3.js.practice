@@ -25,13 +25,13 @@ const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.t
 
 // Scales setup
 const xscale = d3.scaleLinear().range([0, width]);
-const yscale = d3.scaleLinear().range([0, height]);
+const yscale = d3.scaleLinear().range([height, 0]);
 
 // Axis setup
 const xaxis = d3.axisBottom().scale(xscale);
-const g_xaxis = g.append("g").attr("class", "x axis");
+const g_xaxis = g.append("g") //.attr("class", "x axis");
 const yaxis = d3.axisLeft().scale(yscale);
-const g_yaxis = g.append("g").attr("class", "y axis");
+const g_yaxis = g.append("g") //.attr("class", "y axis");
 
 // call
 g_xaxis.call(xaxis)
