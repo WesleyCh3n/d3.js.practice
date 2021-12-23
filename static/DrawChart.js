@@ -23,9 +23,9 @@ const xscale = d3.scaleLinear().range([0, width]);
 const yscale = d3.scaleLinear().range([height, 0]);
 
 // Axis setup
-const xaxis = d3.axisBottom().scale(xscale);
+const xaxis = d3.axisBottom(xscale);
 const g_xaxis = g.append("g").attr("transform", `translate(0, ${height})`);
-const yaxis = d3.axisLeft().scale(yscale);
+const yaxis = d3.axisLeft(yscale);
 const g_yaxis = g.append("g");
 
 // call
