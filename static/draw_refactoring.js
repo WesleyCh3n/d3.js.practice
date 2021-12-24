@@ -129,7 +129,8 @@ function createNav(data, mode) {
     .datum(data)
     .attr("class", mode)
     .attr("stroke", "steelblue")
-    .attr("fill", (mode == 'line') ? "none": "none")
+    .attr("stroke-width", 1.5)
+    .attr("fill", (mode == 'line') ? "none": "none") // INFO: can't brush w/ color
     .attr("d", createGen(xScale, yScale, 'area'));
 }
 
