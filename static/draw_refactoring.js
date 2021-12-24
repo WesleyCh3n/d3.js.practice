@@ -1,4 +1,5 @@
 const dataset = {};
+var interval = []
 
 var csvFiles = [
   "./si-ax.csv",
@@ -20,7 +21,8 @@ var brushHeight = 50
 var brush = d3
   .brushX()
   .extent([[0, 0], [width, brushHeight]])
-  .on("brush", brushed);
+  .on("brush", brushed)
+  .on("end", brushend);
 
 // This function is for the one time preparations
 function createChart(data, name, mode) {
@@ -111,7 +113,10 @@ function createNav(data, mode) {
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-  svg.append("g").call(brush);
+  svg
+    .append("g")
+    .call(brush);
+    // .call(brush.move, xScale.range());
 
   svg
     .append("g")
@@ -124,7 +129,7 @@ function createNav(data, mode) {
     .datum(data)
     .attr("class", mode)
     .attr("stroke", "steelblue")
-    .attr("fill", (mode == 'line') ? "none": "steelblue")
+    .attr("fill", (mode == 'line') ? "none": "none")
     .attr("d", createGen(xScale, yScale, 'area'));
 }
 
@@ -136,11 +141,34 @@ function brushed({selection}) {
   updateChart(dataset.sup, "plot2", "area")
 }
 
+
+function brushend(event) {
+  if (!event.sourceEvent) return;
+
+  var d0 = event.selection.map(xScale.invert);
+  var l = interval.reduce((prev, curr) =>
+    Math.abs(curr - d0[0]) < Math.abs(prev - d0[0]) ? curr : prev);
+  var r = interval.reduce((prev, curr) =>
+    Math.abs(curr - d0[1]) < Math.abs(prev - d0[1]) ? curr : prev);
+  d3.select(this).transition().call(event.target.move, [l,r].map(xScale))
+}
+
+const findInterval = (interval, curr, next) => {
+  if (!next)
+    return;
+  if (curr.y == 0 && next.y == 1) {
+    interval.push(curr.x);
+  }
+}
+
 Promise.all(
   csvFiles.map(file => d3.csv(file))
 ).then(([ax, sup]) => {
     dataset.ax = ax.map(row => ({ x: +row.x, y: +row.y }))
     dataset.sup = sup.map(row => ({ x: +row.index, y: +row.double_support }))
+    dataset.sup.forEach((_, i, arr) => {
+      findInterval(interval, arr[i], arr[i+1])
+    })
     createNav(dataset.sup, "area");
     createChart(dataset.ax, "plot1", "line")
     createChart(dataset.sup, "plot2", "area")
