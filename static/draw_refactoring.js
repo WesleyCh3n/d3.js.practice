@@ -17,10 +17,10 @@ var height = 200 - margin.top - margin.bottom;
 var xScale = d3.scaleLinear().range([0, width]);
 var brushXScale = d3.scaleLinear().range([0, width]);
 var brushHeight = 50
-var brush = d3.brushX().extent([
-  [0, 0],
-  [width, brushHeight],
-]).on("brush", brushed);
+var brush = d3
+  .brushX()
+  .extent([[0, 0], [width, brushHeight]])
+  .on("brush", brushed);
 
 // This function is for the one time preparations
 function createChart(data, name, mode) {
@@ -39,27 +39,11 @@ function createChart(data, name, mode) {
 
   svg.append("g").attr("class", "y axis");
 
-  switch (mode) {
-    case 'line':
-      svg
-        .append("path")
-        .attr("class", "line") // Assign a class for styling
-        .attr("fill", "none")
-        .attr("stroke", "steelblue");
-      break;
-    case 'area':
-      svg
-        .append("path")
-        .attr("class", "area")
-        .attr("fill", "steelblue");
-      break;
-    default:
-    svg
-      .append("path")
-      .attr("class", "line") // Assign a class for styling
-      .attr("fill", "none")
-      .attr("stroke", "steelblue");
-  }
+  svg
+    .append("path")
+    .attr("class", mode) // Assign a class for styling
+    .attr("fill", (mode == "line")?"none":"steelblue")
+    .attr("stroke", "steelblue");
 
   brushXScale.domain([0, data.length])
 
@@ -88,42 +72,36 @@ function updateChart(data, name, mode) {
   svg.select(".y.axis")
     .call(d3.axisLeft(yScale));
 
+  svg
+    .select(`.${mode}`)
+    .datum(data)
+    .attr("clip-path", "url(#chart-path)")
+    .attr("fill", (mode == 'line') ? "none": "steelblue")
+    .attr("d", createGen(brushXScale, yScale, mode));
+}
+
+const createGen = (xScale, yScale, mode) => {
   switch (mode) {
     case 'line':
-      var gen = d3
-      .line()
-      .x((d) => brushXScale(d.x))
-      .y((d) => yScale(d.y));
-      svg
-        .select(".line")
-        .datum(data) // 10. Binds data to the line
-        .attr("clip-path", "url(#chart-path)")
-        .attr("d", gen) // 11. Calls the line generator
-      break;
+      return d3
+        .line()
+        .x((d) => xScale(d.x))
+        .y((d) => yScale(d.y));
     case 'area':
-      var gen = d3.area()
-      .x((d) => brushXScale(d.x))
-      .y0(yScale(0))
-      .y1((d) => yScale(d.y));
-      svg
-        .select(".area")
-        .datum(data) // 10. Binds data to the line
-        .attr("clip-path", "url(#chart-path)")
-        .attr("d", gen) // 11. Calls the line generator
+      return d3
+        .area()
+        .x((d) => xScale(d.x))
+        .y0(yScale(0))
+        .y1((d) => yScale(d.y));
   }
 }
 
-function createNav(data) {
+function createNav(data, mode) {
   xScale.domain([0, data.length]) // input
   var yScale = d3
     .scaleLinear()
     .domain(d3.extent(data, (d) => d.y)) // input
     .range([brushHeight, 0]); // output
-
-  var line = d3
-    .line()
-    .x((d) => xScale(d.x))
-    .y((d) => yScale(d.y));
 
   var svg = d3
     .select("#minimap")
@@ -144,10 +122,10 @@ function createNav(data) {
   svg
     .append("path")
     .datum(data)
-    .attr("class", "line")
+    .attr("class", mode)
     .attr("stroke", "steelblue")
-    .attr("fill", "none")
-    .attr("d", line);
+    .attr("fill", (mode == 'line') ? "none": "steelblue")
+    .attr("d", createGen(xScale, yScale, 'area'));
 }
 
 function brushed({selection}) {
@@ -163,7 +141,7 @@ Promise.all(
 ).then(([ax, sup]) => {
     dataset.ax = ax.map(row => ({ x: +row.x, y: +row.y }))
     dataset.sup = sup.map(row => ({ x: +row.index, y: +row.double_support }))
-    createNav(dataset.ax);
+    createNav(dataset.sup, "area");
     createChart(dataset.ax, "plot1", "line")
     createChart(dataset.sup, "plot2", "area")
   })
