@@ -55,55 +55,55 @@ var navPane = svg.append("g")
 
 const dataset = {};
 
-await d3.csv("./si-ax.csv").then((parsed) => {
-  dataset.data = parsed.map((row) => {
-    row.x = +row.x
-    row.y = +row.y
-    return row;
-  });
+var csvFiles = [
+  "./si-ax.csv",
+  "./sup.csv",
+]
+Promise.all(
+  csvFiles.map(file => d3.csv(file))
+).then(([ax, _]) => {
+    dataset.ax = ax.map(row => ({ x: +row.x, y: +row.y }))
+    xScale.domain(d3.extent(dataset.ax, (d) => d.x))
+    yScale.domain(d3.extent(dataset.ax, (d) => d.y))
+    xScale_nav.domain(xScale.domain());
+    yScale_nav.domain(yScale.domain());
 
-  xScale.domain(d3.extent(dataset.data, (d) => d.x))
-  yScale.domain(d3.extent(dataset.data, (d) => d.y))
-  xScale_nav.domain(xScale.domain());
-  yScale_nav.domain(yScale.domain());
+    mainPane.append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", `translate(0, ${height})`)
+      .call(xAxis);
 
-  mainPane.append("g")
-    .attr("class", "axis axis--x")
-    .attr("transform", "translate(0," + height + ")")
-    .call(xAxis);
+    mainPane.append("g")
+      .attr("class", "axis axis--y")
+      .call(yAxis);
 
-  mainPane.append("g")
-    .attr("class", "axis axis--y")
-    .call(yAxis);
+    lineChartMain.append("path")
+      .datum(dataset.ax)
+      .attr("class", "line")
+      .attr('stroke', 'steelblue')
+      .attr('stroke-width', 1)
+      .attr('fill', 'none')
+      .attr("d", lineGen);
 
-  lineChartMain.append("path")
-    .datum(dataset.data)
-    .attr("class", "line")
-    .attr('stroke', 'steelblue')
-    .attr('stroke-width', 1)
-    .attr('fill', 'none')
-    .attr("d", lineGen);
-
-  navPane.append("path")
-    .datum(dataset.data)
-    .attr("class", "line")
-    .attr('stroke', 'steelblue')
-    .attr('stroke-width', 1)
-    .attr('fill', 'none')
-    .attr("d", lineGen_nav);
+    navPane.append("path")
+      .datum(dataset.ax)
+      .attr("class", "line")
+      .attr('stroke', 'steelblue')
+      .attr('stroke-width', 1)
+      .attr('fill', 'none')
+      .attr("d", lineGen_nav);
 
 
-  navPane.append("g")
-    .attr("class", "axis axis--x")
-    .attr("transform", "translate(0," + height_nav + ")")
-    .call(xAxis);
+    navPane.append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height_nav + ")")
+      .call(xAxis);
 
-  navPane.append("g")
-    .attr("class", "brush")
-    .call(brush);
-    // .call(brush.move, xScale.range()); // default cover all
-
-});
+    navPane.append("g")
+      .attr("class", "brush")
+      .call(brush)
+      .call(brush.move, xScale.range()); // default cover all
+  })
 
 function brushed({selection}) {
   var s = selection || xScale_nav.range();
@@ -114,11 +114,11 @@ function brushed({selection}) {
 }
 
 function brushend(event) {
-  console.log(event);
+  // console.log(event);
   if (!event.sourceEvent) return;
 
   var d0 = event.selection.map(xScale_nav.invert);
   var d1 = d0.map(x => Math.round(x+50))
-  console.log(d1)
-  d3.select(this).transition().call(event.target.move, d1.map(xScale_nav))
+  // console.log(d1)
+  // d3.select(this).transition().call(event.target.move, d1.map(xScale_nav))
 }
