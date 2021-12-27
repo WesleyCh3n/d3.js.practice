@@ -1,9 +1,22 @@
-const dataset = {};
+const dataset = {
+  ax: {
+    name: "ax",
+    mode: "line",
+    data: {},
+  },
+  doubleSupport: {
+    name: "doubleSupport",
+    mode: "area",
+    data: {},
+  },
+};
+
 var interval = []
 
 var csvFiles = [
-  "./si-ax.csv",
-  "./sup.csv",
+  "./accelaration.csv",
+  "./support.csv",
+  "./cycle.csv"
 ]
 
 var margin = {
@@ -109,7 +122,7 @@ function createNav(data, mode) {
     .select("#minimap")
     .append("svg")
     .attr("width", width + margin.left + margin.right)
-    .attr("height", brushHeight + margin.top + margin.bottom)
+    .attr("height", brushHeight + margin.top + 40)
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -118,28 +131,45 @@ function createNav(data, mode) {
     .call(brush);
     // .call(brush.move, xScale.range());
 
+  var xAxisGen = d3
+    .axisBottom(xScale)
+    .ticks(interval.lenght)
+    .tickValues(interval)
+    .tickSize(-200)
   svg
     .append("g")
     .attr("class", "x axis")
     .attr("transform", "translate(0," + brushHeight + ")")
-    .call(d3.axisBottom(xScale));
+    .call(xAxisGen)
+    .selectAll(".tick text")
+    .style("text-anchor", "end")
+    .attr("dx", "-.8em")
+    .attr("dy", ".15em")
+    .attr("transform", "rotate(-40)");
 
-  svg
-    .append("path")
-    .datum(data)
-    .attr("class", mode)
-    .attr("stroke", "steelblue")
-    .attr("stroke-width", 1.5)
-    .attr("fill", (mode == 'line') ? "none": "none") // INFO: can't brush w/ color
-    .attr("d", createGen(xScale, yScale, 'area'));
+  /* svg
+   *   .append("path")
+   *   .datum(data)
+   *   .attr("class", mode)
+   *   .attr("stroke", "gray")
+   *   .attr("stroke-width", 1.5)
+   *   .attr("fill", (mode == 'line') ? "none": "none") // INFO: can't brush w/ color
+   *   .attr("d", createGen(xScale, yScale, 'area')); */
 }
 
 function brushed({selection}) {
   var s = selection || xScale.range();
   var realMainDomain = s.map(xScale.invert, xScale);
   brushXScale.domain(realMainDomain);
-  updateChart(dataset.ax, "plot1", "line")
-  updateChart(dataset.sup, "plot2", "area")
+  for (var key in dataset) {
+    updateChart(
+      dataset[key].data,
+      dataset[key].name,
+      dataset[key].mode
+    );
+  }
+  /* updateChart(dataset.ax, "plot1", "line")
+   * updateChart(dataset.sup, "plot2", "area") */
 }
 
 
@@ -164,13 +194,23 @@ const findInterval = (interval, curr, next) => {
 
 Promise.all(
   csvFiles.map(file => d3.csv(file))
-).then(([ax, sup]) => {
-    dataset.ax = ax.map(row => ({ x: +row.x, y: +row.y }))
-    dataset.sup = sup.map(row => ({ x: +row.index, y: +row.double_support }))
-    dataset.sup.forEach((_, i, arr) => {
-      findInterval(interval, arr[i], arr[i+1])
-    })
-    createNav(dataset.sup, "area");
-    createChart(dataset.ax, "plot1", "line")
-    createChart(dataset.sup, "plot2", "area")
+).then(([accelaration, support, cycle]) => {
+
+    // TODO: refactor this index member
+    dataset.ax.data = accelaration.map(row => ({ x: +row.index, y: +row['si-ax'] }))
+    dataset.doubleSupport.data = support.map(row => ({ x: +row.index, y: +row.double_support }))
+
+    interval = cycle.map(row => row.cycle)
+
+    /* dataset.doubleSupport.data.forEach((_, i, arr) => {
+     *   findInterval(interval, arr[i], arr[i+1])
+     * }) */
+    createNav(dataset.doubleSupport.data, "area");
+    for (var key in dataset) {
+      createChart(
+        dataset[key].data,
+        dataset[key].name,
+        dataset[key].mode
+      );
+    }
   })
